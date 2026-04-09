@@ -163,19 +163,31 @@ f32.store
 )
 
 (func $cornerHandling 
-(if (i32.gt_s (call $getPlayerX) (i32.const 158))
+(if (i32.gt_s (call $getPlayerX) (i32.const 152))
 (then 
+  call $getVelMemX
+  call $reverseDirection
 
   call $getPlayerMemX
-  i32.const -10
+  i32.const 152
   i32.store
+
+  ;; call $getPlayerMemX
+  ;; i32.const -10
+  ;; i32.store
 ))
 
-(if (i32.lt_s (call $getPlayerX) (i32.const -10))
+(if (i32.lt_s (call $getPlayerX) (i32.const 0))
 (then
+  call $getVelMemX
+  call $reverseDirection
+
   call $getPlayerMemX
-  i32.const 158
+  i32.const 0
   i32.store
+  ;; call $getPlayerMemX
+  ;; i32.const 158
+  ;; i32.store
 ))
 
 (if (i32.gt_s (call $getPlayerY) (i32.const 152))
