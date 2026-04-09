@@ -112,9 +112,8 @@
 (global $TONE_PAN_RIGHT i32 (i32.const 32))
 
 ;; smiley
-(data (i32.const 0x19a0) "\c3\81\24\24\00\24\99\c3")
-
-(data (i32.const 0x19a8) "Hello world!\00")
+(data (i32.const 0x19a0) "\fb\f7\ee\dd\bb\f7\ef\ff")
+(data (i32.const 0x19a8) "\ff\ff\ff\ff\ff\1f\1f\1f")
 
 (data (i32.const 0x2000) "%d\00")
 
@@ -142,6 +141,16 @@
 (call $getInput (local.get $gamepad))
 (i32.store16 (global.get $DRAW_COLORS) (global.get $color))
 ;; blit(smiley, 76, 76, 8, 8, BLIT_1BPP);
+(call $blit (i32.const 0x19a8) (call $getPlayerX) (call $getPlayerY) (i32.const 8) (i32.const 8) (global.get $BLIT_1BPP))
+
+(if (i32.eq (global.get $color) (i32.const 4))
+  (then
+    (i32.store16 (global.get $DRAW_COLORS) (i32.const 2))
+  )
+  (else
+    (i32.store16 (global.get $DRAW_COLORS) (i32.add (global.get $color) (i32.const 1)))
+  )
+)
 (call $blit (i32.const 0x19a0) (call $getPlayerX) (call $getPlayerY) (i32.const 8) (i32.const 8) (global.get $BLIT_1BPP))
 
 (call $cornerHandling)
@@ -465,14 +474,13 @@ call $updatePos
       ;; Get X
       (i32.shr_u (local.get $bulletStruct) (i32.const 8))
       (i32.and (i32.const 0xff))
-      ;; Center:
-      (i32.add (i32.const 1))
+      (i32.add (i32.const -2))
 
       ;; Get Y
       (i32.shr_u (local.get $bulletStruct) (i32.const 16))
       (i32.and (i32.const 0xff))
       ;; Center:
-      (i32.add (i32.const 1))
+      (i32.add (i32.const 4))
 
 
       ;; Width:
