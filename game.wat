@@ -333,8 +333,8 @@ call $updatePos
 
 ;; Each bullet is 3 bytes: 1 byte for X pos, 1 byte for Y pos, 1 byte for "state" (i.e., alive? Dead? Enemy bullet? Player bullet?). But we store each in 1 i32.
 ;; The bullets "array" currently doesn't have a set cap, but the first entry indicates length.
-(global $bullets i32 (i32.const 0x5000))
-(global $bulletsArray i32 (i32.const 0x5004))
+(global $bullets i32 (i32.const 0x3012))
+(global $bulletsArray i32 (i32.const 0x3016))
 
 (func $createBullet (param $state i32) (param $x i32) (param $y i32)
   (local $bulletIdx i32)
