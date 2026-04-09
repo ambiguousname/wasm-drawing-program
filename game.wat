@@ -116,6 +116,8 @@
 
 (data (i32.const 0x19a8) "Hello world!\00")
 
+(data (i32.const 0x2000) "%d\00")
+
 ;; Functions
 
 (func (export "start")
@@ -317,39 +319,101 @@ call $updatePos
 
 ;; region: Shooting
 
-;; Each bullet is 3 bytes: 1 byte for X pos, 1 byte for Y pos, 1 byte for "state" (i.e., alive? Dead? Enemy bullet? Player bullet?)
+;; Each bullet is 3 bytes: 1 byte for X pos, 1 byte for Y pos, 1 byte for "state" (i.e., alive? Dead? Enemy bullet? Player bullet?). But we store each in 1 i32.
 ;; The bullets "array" currently doesn't have a set cap, but the first entry indicates length.
 (global $bullets i32 (i32.const 0x5000))
+(global $bulletsArray i32 (i32.const 0x5004))
 
 (func $createBullet (param $state i32) (param $x i32) (param $y i32)
   (local $bulletIdx i32)
+  
+  ;; Set idx:
+  (i32.load (global.get $bullets))
+  ;; The width (in bytes):
+  (i32.mul (i32.const 4))
+  ;; The base address:
+  (i32.add (global.get $bulletsArray))
+  local.set $bulletIdx
+
   ;; Bullets Len += 1
-  (i32.add (global.get $bullets) (i32.const 1))
-  (i32.store (global.get $bullets))
+  global.get $bullets
+  (i32.add (i32.load (global.get $bullets)) (i32.const 1))
+  i32.store
 
-  (local.set $bulletIdx (i32.mul (global.get $bullets) (i32.const 3)))
+  ;; Struct prep
+  ;; Prepare to store in bulletIdx:
+  local.get $bulletIdx
 
+  ;; Set state:
+  local.get $state
+
+  ;; Set X
+  (i32.shl (local.get $x) (i32.const 8))
+  ;; Merge state + X:
+  i32.or
+  
+  ;; Set Y
+  (i32.shl (local.get $y) (i32.const 16))
+  ;; Merge struct:
+  i32.or
+
+  i32.store
 )
 
 (func $shoot (param $input i32)
   (local $idx i32)
+  (local $bulletStruct i32)
   (local $bulletLen i32)
 
   (if (i32.and (local.get $input) (global.get $BUTTON_1))
   (then
-    (call $createBullet (i32.const 0) (i32.const 0) (i32.const 0))
+    (call $createBullet (i32.const 0) (call $getPlayerX) (call $getPlayerY))
   ))
 
   (i32.store16 (global.get $DRAW_COLORS) (i32.const 4))
-  (local.set $bulletLen (i32.load (local.get $bulletLen)))
+  (local.set $bulletLen (i32.load (global.get $bullets)))
   (local.set $idx (i32.const 0))
   (block $bullet_loop_end
     (loop $bullet_loop
       (br_if $bullet_loop_end (i32.ge_u (local.get $idx) (local.get $bulletLen)))
+      
+      ;; Load the struct:
+      (i32.mul (local.get $idx) (i32.const 4))
+      (i32.add (global.get $bulletsArray))
+      i32.load
+      (local.set $bulletStruct)
+
+      ;; Get X
+      (i32.shr_u (local.get $bulletStruct) (i32.const 8))
+      (i32.and (i32.const 0xff))
+      ;; Center:
+      (i32.add (i32.const 1))
+
+      ;; Get Y
+      (i32.shr_u (local.get $bulletStruct) (i32.const 16))
+      (i32.and (i32.const 0xff))
+      ;; Center:
+      (i32.add (i32.const 1))
+
+
+      ;; Width:
+      i32.const 5
+      ;; Height:
+      i32.const 5
+      call $rect
+        
       (local.set $idx (i32.add (local.get $idx) (i32.const 1)))
       (br $bullet_loop)
     )
   )
 )
 
+;; endregion
+
+;; region Debug
+(func $printInt (param $int i32)
+
+  (i32.store (i32.const 0x2500) (local.get $int))
+  (call $tracef (i32.const 0x2000) (i32.const 0x2500))
+)
 ;; endregion
