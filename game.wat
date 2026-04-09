@@ -140,7 +140,7 @@
 
 (call $shoot (local.get $gamepad))
 (call $getInput (local.get $gamepad))
-(i32.store16 (global.get $DRAW_COLORS) (i32.const 2))
+(i32.store16 (global.get $DRAW_COLORS) (global.get $color))
 ;; blit(smiley, 76, 76, 8, 8, BLIT_1BPP);
 (call $blit (i32.const 0x19a0) (call $getPlayerX) (call $getPlayerY) (i32.const 8) (i32.const 8) (global.get $BLIT_1BPP))
 
@@ -151,8 +151,8 @@
 
 (global $playerPos i32 (i32.const 0x3000))
 (global $playerVelocity i32 (i32.const 0x3008))
-(global $acceleration f32 (f32.const 0.5))
-(global $friction f32 (f32.const 0.95))
+(global $acceleration (mut f32) (f32.const 0.5))
+(global $friction (mut f32) (f32.const 0.95))
 
 (func $reverseDirection (param $velocityMem i32)
 (call $tone (i32.const 262) (i32.const 5) (i32.const 50) (global.get $TONE_TRIANGLE))
@@ -372,17 +372,82 @@ call $updatePos
   i32.store
 )
 
+(global $color (mut i32) (i32.const 4))
+(global $colorPressed (mut i32) (i32.const 0))
+(global $backgroundColorSwap (mut i32) (i32.const 1))
+(global $drawPressed (mut i32) (i32.const 0))
+
+(func $addPlayerColor
+  (global.set $color (i32.add (global.get $color) (i32.const 1)))
+  (if (i32.gt_u (global.get $color) (i32.const 4))
+  (then
+    (global.set $color (i32.const 1))
+  )
+  )
+)
+
 (func $shoot (param $input i32)
   (local $idx i32)
   (local $bulletStruct i32)
   (local $bulletLen i32)
+  (local $currentBG i32)
+  (local $currentBGValue i32)
+  (local $palette0Value i32)
 
+  (if (i32.and (local.get $input) (global.get $BUTTON_2))
+  (then 
+    (global.set $acceleration (f32.const 10.0))
+    (global.set $friction (f32.const 0.1))
+    (if (i32.eq (global.get $colorPressed) (i32.const 0))
+      (then
+        call $addPlayerColor
+      )
+    )
+    (global.set $colorPressed (i32.const 1))
+  )
+  (else
+    (global.set $acceleration (f32.const 0.5))
+    (global.set $friction (f32.const 0.95))
+    (global.set $colorPressed (i32.const 0))
+  )
+  )
+  
   (if (i32.and (local.get $input) (global.get $BUTTON_1))
   (then
-    (call $createBullet (i32.const 0) (call $getPlayerX) (call $getPlayerY))
-  ))
+    (call $createBullet (global.get $color) (call $getPlayerX) (call $getPlayerY))
+    ;; Are we equivalent to the BG?
+    (if (i32.eq (global.get $color) (i32.const 1))
+    (then
+      (if (i32.ne (global.get $drawPressed) (i32.const 1))
+      (then
+        (i32.store (global.get $bullets) (i32.const 0))
 
-  (i32.store16 (global.get $DRAW_COLORS) (i32.const 4))
+        (local.set $currentBG (i32.add (global.get $PALETTE0) (i32.mul (global.get $backgroundColorSwap) (i32.const 0x04))))
+        (local.set $currentBGValue (i32.load (local.get $currentBG)))
+        (local.set $palette0Value (i32.load (global.get $PALETTE0)))
+
+        ;; Bitwise OR swap
+        (i32.store (global.get $PALETTE0) (local.get $currentBGValue))
+        (i32.store (local.get $currentBG) (local.get $palette0Value))
+
+
+        (global.set $backgroundColorSwap (i32.add (global.get $backgroundColorSwap) (i32.const 1)))
+        (if (i32.gt_u (global.get $backgroundColorSwap) (i32.const 3))
+        (then
+          (global.set $backgroundColorSwap (i32.const 1))
+        ))
+        (call $addPlayerColor)
+      )
+      )
+    )
+    )
+    (global.set $drawPressed (i32.const 1))
+  )
+  (else 
+    (global.set $drawPressed (i32.const 0))
+  )
+  )
+
   (local.set $bulletLen (i32.load (global.get $bullets)))
   (local.set $idx (i32.const 0))
   (block $bullet_loop_end
@@ -394,6 +459,8 @@ call $updatePos
       (i32.add (global.get $bulletsArray))
       i32.load
       (local.set $bulletStruct)
+      
+      (i32.store16 (global.get $DRAW_COLORS) (i32.and (local.get $bulletStruct) (i32.const 0xff)))
 
       ;; Get X
       (i32.shr_u (local.get $bulletStruct) (i32.const 8))
