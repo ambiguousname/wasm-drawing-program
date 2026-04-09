@@ -123,6 +123,7 @@
 (call $updatePos (i32.const 76) (i32.const 76))
 (i32.store (global.get $PALETTE0) (i32.const 0xffffff))
 (i32.store (global.get $PALETTE1) (i32.const 0x000000))
+(i32.store (global.get $PALETTE2) (i32.const 0xffff00))
 (i32.store (global.get $PALETTE3) (i32.const 0xff0000))
 )
 
@@ -424,6 +425,8 @@ call $updatePos
   (if (i32.and (local.get $input) (global.get $BUTTON_1))
   (then
     (call $createBullet (global.get $color) (call $getPlayerX) (call $getPlayerY))
+    
+    (call $tone (i32.div_u (i32.load (global.get $bullets)) (i32.const 10)) (i32.const 1) (i32.const 20) (global.get $TONE_PULSE1))
     ;; Are we equivalent to the BG?
     (if (i32.eq (global.get $color) (i32.const 1))
     (then
