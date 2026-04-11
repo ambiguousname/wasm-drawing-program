@@ -77,6 +77,7 @@
 (global $SYSTEM_FLAGS i32 (i32.const 0x1f))
 (global $NETPLAY i32 (i32.const 0x20))
 (global $FRAMEBUFFER i32 (i32.const 0xa0))
+(global $CLEAR_PEN i32 (i32.const 0x2050))
 
 (global $BUTTON_1 i32 (i32.const 1))
 (global $BUTTON_2 i32 (i32.const 2))
@@ -141,18 +142,21 @@
 (call $shoot (local.get $gamepad))
 (call $getInput (local.get $gamepad))
 (i32.store16 (global.get $DRAW_COLORS) (global.get $color))
-;; blit(smiley, 76, 76, 8, 8, BLIT_1BPP);
-(call $blit (i32.const 0x19a8) (call $getPlayerX) (call $getPlayerY) (i32.const 8) (i32.const 8) (global.get $BLIT_1BPP))
+(if (i32.eq (i32.load (global.get $CLEAR_PEN)) (i32.const 0))
+(then
+  (call $blit (i32.const 0x19a8) (call $getPlayerX) (call $getPlayerY) (i32.const 8) (i32.const 8) (global.get $BLIT_1BPP))
 
-(if (i32.eq (global.get $color) (i32.const 4))
-  (then
-    (i32.store16 (global.get $DRAW_COLORS) (i32.const 2))
+  (if (i32.eq (global.get $color) (i32.const 4))
+    (then
+      (i32.store16 (global.get $DRAW_COLORS) (i32.const 2))
+    )
+    (else
+      (i32.store16 (global.get $DRAW_COLORS) (i32.add (global.get $color) (i32.const 1)))
+    )
   )
-  (else
-    (i32.store16 (global.get $DRAW_COLORS) (i32.add (global.get $color) (i32.const 1)))
-  )
+  (call $blit (i32.const 0x19a0) (call $getPlayerX) (call $getPlayerY) (i32.const 8) (i32.const 8) (global.get $BLIT_1BPP))
 )
-(call $blit (i32.const 0x19a0) (call $getPlayerX) (call $getPlayerY) (i32.const 8) (i32.const 8) (global.get $BLIT_1BPP))
+)
 
 (call $cornerHandling)
 )
